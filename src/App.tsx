@@ -54,10 +54,12 @@ function App() {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const form = e.currentTarget
-        const input = form.elements.namedItem('message') as HTMLInputElement
-        if (input.value) {
+        const input = form.elements.namedItem('message') as HTMLTextAreaElement
+        if (input.value.trim()) {
             sendMessage(input.value)
             input.value = ''
+            // Reset textarea height
+            input.style.height = 'auto'
         }
     }
 
@@ -71,6 +73,10 @@ function App() {
         })
     }
 
+    const handleCreateNewChat = () => {
+        createNewChat()
+    }
+
     return (
         <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-50 overflow-hidden">
             <Toast />
@@ -79,7 +85,7 @@ function App() {
                 <SidebarContent
                     conversations={conversations}
                     currentChatId={currentChatId}
-                    onCreateNew={createNewChat}
+                    onCreateNew={handleCreateNewChat}
                     onSelectChat={(id) => setCurrentChatId(id)}
                     onDeleteChat={handleDeleteChat}
                 />
@@ -94,7 +100,7 @@ function App() {
                             conversations={conversations}
                             currentChatId={currentChatId}
                             onCreateNew={() => {
-                                createNewChat()
+                                handleCreateNewChat()
                                 setIsMobileMenuOpen(false)
                             }}
                             onSelectChat={(id) => {
@@ -115,8 +121,12 @@ function App() {
                     <Button size="icon" variant="plain" onClick={() => setIsMobileMenuOpen(true)}>
                         <Menu size={20} />
                     </Button>
-                    <span className="font-semibold">Demtimcod AI</span>
-                    <Button size="icon" variant="plain" onClick={() => createNewChat()}>
+                    <span className="font-semibold truncate max-w-[60%]">
+                        {currentConversation && currentConversation.messages.length > 0
+                            ? currentConversation.title
+                            : 'Demtimcod AI'}
+                    </span>
+                    <Button size="icon" variant="plain" onClick={handleCreateNewChat}>
                         <Plus size={20} />
                     </Button>
                 </header>
@@ -124,7 +134,11 @@ function App() {
                 {/* Desktop Header */}
                 <header className="hidden md:flex h-16 items-center justify-between px-6 border-b border-zinc-200 bg-white/50 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/50 flex-shrink-0 z-10">
                     <div className="flex items-center gap-4">
-                        <span className="font-semibold text-lg">Demtimcod AI Chat</span>
+                        <span className="font-semibold text-lg">
+                            {currentConversation && currentConversation.messages.length > 0
+                                ? currentConversation.title
+                                : 'Demtimcod AI Chat'}
+                        </span>
                     </div>
                 </header>
 
@@ -140,7 +154,7 @@ function App() {
                                 <p className="text-sm text-zinc-500">Pick a model and start a new conversation.</p>
                             </div>
                         ) : (
-                            currentConversation.messages.map((msg, i) => (
+                            currentConversation?.messages?.map((msg, i) => (
                                 <MessageBubble key={i} role={msg.role} content={msg.content} />
                             ))
                         )}
@@ -169,16 +183,18 @@ function App() {
                                 <textarea
                                     name="message"
                                     placeholder="Ask anything. Type @ for mentions and / for shortcuts."
-                                    className="w-full resize-none border-none bg-transparent p-0 placeholder:text-zinc-400 focus:outline-none focus:ring-0 text-lg"
+                                    className="w-full resize-none border-none bg-transparent p-0 placeholder:text-zinc-400 focus:outline-none focus:ring-0 text-lg max-h-[200px] overflow-y-auto"
                                     rows={1}
+                                    onInput={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.height = 'auto';
+                                        target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                                    }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
                                             e.preventDefault();
                                             e.currentTarget.form?.requestSubmit();
                                         }
-                                        // Auto-resize
-                                        e.currentTarget.style.height = 'auto';
-                                        e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
                                     }}
                                     disabled={isLoading || !currentChatId}
                                 />
@@ -321,15 +337,18 @@ function SidebarContent({
 
                         <div onClick={(e) => e.stopPropagation()}>
                             <AlertDialog>
-                                <AlertDialogTrigger>
-                                    <Button
-                                        size="icon"
-                                        variant="plain"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500"
-                                    >
-                                        <Trash2 size={14} />
-                                    </Button>
-                                </AlertDialogTrigger>
+                                <AlertDialogTrigger
+                                    render={(triggerProps) => (
+                                        <Button
+                                            {...triggerProps}
+                                            size="icon"
+                                            variant="plain"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500"
+                                        >
+                                            <Trash2 size={14} />
+                                        </Button>
+                                    )}
+                                />
                                 <AlertDialogPopup>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
@@ -345,7 +364,9 @@ function SidebarContent({
                                                 {...props}
                                                 onClick={(e) => {
                                                     onDeleteChat(chat.id);
-                                                    props.onClick?.(e);
+                                                    if (props.onClick) {
+                                                        props.onClick(e);
+                                                    }
                                                 }}
                                             >
                                                 Delete

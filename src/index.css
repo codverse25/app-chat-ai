@@ -333,4 +333,28 @@
   body {
     @apply text-base bg-background text-foreground;
   }
+
+  /* Custom scrollbar for textarea */
+  textarea::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  textarea::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  textarea::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar);
+    border-radius: 3px;
+  }
+
+  textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
+  }
+
+  /* Firefox scrollbar */
+  textarea {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-scrollbar) transparent;
+  }
 }
