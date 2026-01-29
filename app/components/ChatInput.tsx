@@ -52,9 +52,9 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     }, []);
 
     return (
-        <div className="glass-strong border-t border-border p-3 sm:p-4 md:p-6">
+        <div className="glass-strong border-t border-border p-3 md:p-4 rounded-t-md">
             <form onSubmit={handleSubmit}>
-                <div className="max-w-3xl mx-auto flex gap-2 sm:gap-3 items-end">
+                <div className="flex gap-2 sm:gap-3 items-end">
                     <div
                         className={cn(
                             "flex-1 rounded-2xl overflow-hidden transition-all duration-200",

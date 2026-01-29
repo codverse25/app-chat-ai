@@ -16,7 +16,7 @@ export function Header({
     onMenuToggle,
 }: HeaderProps) {
     return (
-        <header className="glass-strong border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="glass-strong border-b border-border px-4 md:px-5 py-2.5 md:py-3 flex items-center justify-between sticky top-0 z-10">
             <div className="flex items-center gap-3">
                 {/* Mobile Menu Button */}
                 <Button
@@ -28,15 +28,10 @@ export function Header({
                     <Menu className="h-5 w-5" />
                 </Button>
 
-                {/* Logo */}
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center">
-                        <img src="https://demtimcod.github.io/img/dc-logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg" />
-                    </div>
-                    <h1 className="text-lg font-bold gradient-text hidden sm:block">
-                        Demtimcod AI
-                    </h1>
-                </div>
+                {/* App Name */}
+                <h1 className="text-base md:text-lg font-bold gradient-text">
+                    Demtimcod AI
+                </h1>
             </div>
 
             {/* Model Selector */}

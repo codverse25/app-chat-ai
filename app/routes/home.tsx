@@ -24,6 +24,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = React.useState(false);
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -78,10 +79,12 @@ export default function Home() {
     }
   }, [activeConversationId, isInitializing]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (throttled for performance)
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversations, activeConversationId]);
+    // Use instant scroll during streaming, smooth scroll otherwise
+    const behavior = isLoading ? 'instant' : 'smooth';
+    messagesEndRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior });
+  }, [conversations, activeConversationId, isLoading]);
 
   // PWA Install Prompt with better detection
   React.useEffect(() => {
@@ -330,6 +333,8 @@ export default function Home() {
         onDeleteConversation={handleDeleteConversation}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* Main Content */}
@@ -343,32 +348,48 @@ export default function Home() {
 
         {/* Messages Area */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
-          {!activeConversation || activeConversation.messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center flex-col gap-6 px-4 sm:px-8 text-center">
-              <div className="flex items-center justify-center">
-                <img src="https://demtimcod.github.io/img/dc-logo.jpg" alt="Logo" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full" />
+          <div className="max-w-5xl mx-auto w-full">
+            {!activeConversation || activeConversation.messages.length === 0 ? (
+              <div className="h-full flex items-center justify-center flex-col gap-6 px-4 sm:px-8 text-center pt-25">
+                <div className="flex items-center justify-center">
+                  <img src="https://demtimcod.github.io/img/dc-logo.jpg" alt="Logo" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full" />
+                </div>
+                <div>
+                  <h2 className="gradient-text text-2xl sm:text-3xl mb-2 font-bold">
+                    Welcome to Demtimcod AI
+                  </h2>
+                  <p className="text-muted-foreground max-w-lg text-sm sm:text-base">
+                    Start a conversation with AI. Choose from multiple models including GPT-3.5 Turbo, GPT-4o Mini, DeepSeek V3, and DeepSeek R1.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="gradient-text text-2xl sm:text-3xl mb-2 font-bold">
-                  Welcome to Demtimcod AI
-                </h2>
-                <p className="text-muted-foreground max-w-lg text-sm sm:text-base">
-                  Start a conversation with AI. Choose from multiple models including GPT-3.5 Turbo, GPT-4o Mini, DeepSeek V3, and DeepSeek R1.
-                </p>
+            ) : (
+              <div className="py-6 sm:py-8 md:py-10">
+                {activeConversation.messages.map((message, index) => {
+                  // Check if this is the last AI message and currently streaming
+                  const isLastMessage = index === activeConversation.messages.length - 1;
+                  const isStreaming = isLastMessage && message.role === 'assistant' && isLoading;
+
+                  return (
+                    <ChatMessage
+                      key={message.id}
+                      message={message}
+                      isStreaming={isStreaming}
+                    />
+                  );
+                })}
+                <div ref={messagesEndRef} />
               </div>
-            </div>
-          ) : (
-            <div className="py-4 sm:py-6">
-              {activeConversation.messages.map(message => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Input Area */}
-        <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+        <div className="border-t border-white/5">
+          <div className="max-w-5xl mx-auto w-full">
+            <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+          </div>
+        </div>
       </div>
 
       {/* PWA Install Prompt */}

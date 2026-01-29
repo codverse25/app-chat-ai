@@ -38,17 +38,44 @@ export async function sendChatMessage({
             throw new Error(`API Error: ${response.status} ${response.statusText}`);
         }
 
-        // Handle streaming response
+        // Handle streaming response with batching for smoother updates
         if (onChunk && response.body) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullContent = '';
+            let pendingChunk = '';
+            let animationFrameId: number | null = null;
+
+            // Batch updates using requestAnimationFrame for smooth rendering
+            const flushPendingChunk = () => {
+                if (pendingChunk) {
+                    onChunk(pendingChunk);
+                    pendingChunk = '';
+                }
+                animationFrameId = null;
+            };
+
+            const scheduleUpdate = (content: string) => {
+                pendingChunk += content;
+
+                // Schedule flush if not already scheduled
+                if (animationFrameId === null) {
+                    animationFrameId = requestAnimationFrame(flushPendingChunk);
+                }
+            };
 
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) break;
+                if (done) {
+                    // Flush any remaining content
+                    if (animationFrameId !== null) {
+                        cancelAnimationFrame(animationFrameId);
+                    }
+                    flushPendingChunk();
+                    break;
+                }
 
-                const chunk = decoder.decode(value);
+                const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split('\n').filter(line => line.trim() !== '');
 
                 for (const line of lines) {
@@ -61,7 +88,7 @@ export async function sendChatMessage({
                             const content = parsed.choices?.[0]?.delta?.content || '';
                             if (content) {
                                 fullContent += content;
-                                onChunk(content);
+                                scheduleUpdate(content);
                             }
                         } catch (e) {
                             console.error('Error parsing chunk:', e);
